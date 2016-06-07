@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Print Web Page </title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+        <script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
+        <script src="https:/maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.10.1/bootstrap-table.min.css">
+        <script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.10.1/bootstrap-table.min.js"></script>
+        <link rel="shortcut icon" href="">
+        <script src="//oss.maxcdn.com/bootbox/4.2.0/bootbox.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-validator/0.5.3/js/bootstrapValidator.js"></script>
+
+    </head>
+    <body>
+        <div class="container">
+            <p></p>
+            <div class="well">Print Page</div>
+            <div class="row">
+                <div class="col-xs-6"><div class="well"> <button id="btn_xml">Print</button></div></div>                
+            </div>
+            <div> <table id="table"></table> </div>
+        </div>
+            
+        <!-- The form which is used to populate the item data .......-->
+        <form id="batchForm" method="post" class="form-horizontal" style="display: none;" action="http://localhost:8080/BatchMvnWeb/webresources/home/postBatchParam">
+            
+            <div id="divCodeName" style="display: none;" >
+                <div class="form-group">
+                    <label class="col-xs-3 control-label">Batch Code</label>
+                    <div class="col-xs-5">
+                        <input type="text" class="form-control" name="paramCode" />
+                    </div>
+                </div>
+            </div>
+            
+            <div id="optionTemplate">
+                <div class="form-group">
+                    <label for='label' class="col-xs-3 control-label" id = "paramLabel">Param Label</label>
+                    <div class="col-xs-5">
+                        <input type="text" class="form-control paramInputClass" name="paramPostValue" />
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="col-xs-5 col-xs-offset-3">
+                    <button type="submit" class="btn btn-default" id="submitButton">Submit</button>
+                </div>
+            </div>
+        </form>    
+            
+    <script>
+        $('#btn_xml').click(function(){ 
+            $.ajax({  
+                type: "GET",  
+                url:"http://localhost:8080/BatchMvnWeb/webresources/home/getAllBatch", 
+                dataType:"json",
+                success: function(data){  
+                    //alert("Success:\n"); 
+                    var table_data =data;
+                    $('#table').bootstrapTable({
+                        columns: [{
+                                    field: 'CODE',
+                                    title: 'Code'
+                                    }, {
+                                        field: 'NAME',
+                                        title: 'Name'
+                                    }, {
+                                        field: 'DESCRIPTION',
+                                        title: 'Description',
+                                    },{
+                                        field: 'OUTPUT',
+                                        title: 'Output'
+                                    },{
+                                        field: 'operation',
+                                        title: 'Operation',
+                                        formatter:function(value,row,index){
+                                            var btn = '<button class = "save" > RUN Batch File  </button>  ';
+                                            return btn;
+                                        },
+                                        events: 'operateEvents'
+                                    }],
+                        data: table_data
+                    });
+                },  
+                error: function(data){  
+                    alert('Error: ' + data);  
+                }  
+            });
+        });    
+       
+        $('#btn_post').click(function(){
+            alert("first step");
+            $.ajax({
+            type : "POST",
+            url : "http://localhost:8080/BatchMvnWeb/webresources/home/postMessage",
+            data : JSON.stringify( {
+                    "author": "11:10pm",
+                    "created": "2016-05-30T13:00:19.676",
+                    "message": "1:14pm"
+            }),
+            headers: { 
+            'Accept': 'application/json',
+            'Content-Type': 'application/json' 
+            },
+            success:function(result){
+                alert("success!");
+                alert(JSON.stringify(result));
+            },
+            error:function(result){
+                alert("wrong: ");
+            }
+            });
+        });
+       
+        window.operateEvents = {
+            'click .save': function (e, value, row, index) {
+                //alert('Success load events! value is '+ value +',\n row is '+ JSON.stringify(row)
+                 //       + ',\n e is '+ e +',\n index is '+index);
+                
+                var obj = JSON.parse(JSON.stringify(row)); //get JSON data
+                var code = obj.CODE;
+                var name = obj.NAME;
+                var description = obj.DESCRIPTION;
+                var output = obj.OUTPUT;
+                var input = obj.INPUT;
+                var null_input = JSON.stringify(input).substr(1,JSON.stringify(input).length-2);
+                //if input is null, JSON will give us '{}'. so null_input will give us ' '
+                //then we use this null_input to judge.
+                
+                $('#batchForm').find('input[name="paramCode"]').val(code).end();
+                
+                
+                if(null_input !== ''){
+                    
+                    var input_length = Object.keys(input.PARAM).length;
+                    console.log('input_length is '+ input_length);
+                    $("label[for='label']").text(input.PARAM[0].LABEL);
+                    $('input .paramInputClass').attr('id', input.PARAM[0].PARAMNAME);
+                    
+                    var i = input_length;
+                    var k =1;
+                    if(i > 1){
+                        while(k<i){
+                            var $template = $('#optionTemplate');
+                            var $clone = $template.clone().removeAttr('id').attr("id",i);
+                            $clone.find("label[for='label']").text(input.PARAM[k].LABEL);
+                            $clone.find('input .paramInputClass').attr('id', input.PARAM[k].PARAMNAME);
+                            $clone.prepend( "<p class = 'break_line'>-------------------------------------</p>" ); 
+                            $clone.insertAfter($template);
+                            k = k+1;
+                        }
+                    }
+                    bootbox
+                        .dialog({
+                            title: 'Input Batch ( Code is ' + code +' ) Parameters',
+                            message: $('#batchForm'),
+                            show: false // We will show it manually later
+                        })
+                        .on('shown.bs.modal', function() {
+                            $('#batchForm').show();
+                            //$('#batchForm').bootstrapValidator('resetForm', true);// Reset form
+                        })
+                        .on('hide.bs.modal', function(e) {
+                            // Bootbox will remove the modal (including the body which contains the login form)
+                            // after hiding the modal
+                            // Therefor, we need to backup the form
+                            $('#batchForm').bootstrapValidator('resetForm', true);// Reset form
+                       
+                            var j = input_length;
+                            while(j > 1){
+                                $('#'+j).remove();
+                                j = j - 1;
+                            }
+                            $(' .break_line').remove();
+                            $('#batchForm').hide().appendTo('body');
+                        })
+                        .modal('show');
+                }
+                else{
+                    alert('Since input is null, so we execute immediately!');
+                    $.ajax({
+                    url: "http://localhost:8080/BatchMvnWeb/webresources/home/runBatch",
+                    type: 'POST',
+                    dataType: 'text',
+                    data: JSON.stringify(row),
+                    headers: { 
+                        'Accept': 'text/plain',
+                        'Content-Type': 'application/json' 
+                    },
+                    success:function(result){
+                        alert("success! result is " + JSON.stringify(result));
+                    },
+                    error:function(result){
+                        alert("wrong: "+ JSON.stringify(result));
+                    }
+                })
+                }
+                
+            }   
+        };
+        
+        
+        $(document).ready(function() {    
+            $('#batchForm')
+        /*    .bootstrapValidator({
+                feedbackIcons: {
+                valid: 'glyphicon glyphicon-ok',
+                invalid: 'glyphicon glyphicon-remove',
+                validating: 'glyphicon glyphicon-refresh'
+                },
+                excluded: [':disabled'],
+                fields: {
+                    paramPostName: {
+                        validators: {
+                            notEmpty: {
+                                message: 'The param name required and cannot be empty'
+                            }
+                        }
+                    },
+                    paramPostDefaultValue: {
+                        validators: {
+                            notEmpty: {
+                                message: 'The default value required and cannot be empty'
+                            }
+                        }
+                    },
+                    paramPostLABEL: {
+                        validators: {
+                            notEmpty: {
+                                message: 'The param label required and cannot be empty'
+                            }
+                        }
+                    }
+                }
+            })
+           
+            .on('success.form.fv', function(e) {
+                // Prevent form submission
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            });;
+        */    
+            $('#batchForm').submit(function(e){
+                e.preventDefault(); //STOP default action
+                e.stopImmediatePropagation();
+                
+                var $form = $(e.target);
+                var data_form = JSON.stringify($('#batchForm').serializeObject());
+                alert($('#batchForm').serializeArray());
+                alert("post data : "+data_form);
+                $.ajax({
+                        url: $form.attr('action'),
+                        type: 'POST',
+                        data: data_form,
+                        dataType:'text',
+                        cache: false,
+                        headers: { 
+                        'Accept': 'text/plain',
+                        'Content-Type': 'application/json' 
+                        },
+                        success: function (result) {
+                            alert(result);
+                            console.log("ajax submit")
+                        },  
+                        error:function(result){
+                            alert("wrong: " +result);
+                        }
+                });
+                return false;
+            }); 
+        }); 
+        
+         $.fn.serializeObject = function(){
+            var list = {};
+            var x = [];
+            var a = this.serializeArray();
+            $.each(a, function() {
+                if(list[this.name] !== undefined) {
+                    if(!list[this.name].push) {
+                        list[this.name] = [list[this.name]];
+                    }
+                    list[this.name].push(this.value || '');
+                }else{
+                    list[this.name] = this.value || '';
+                }
+                x.push(list);
+                list = {};
+            });
+            return x;
+        };
+
+    </script>
+    </body>
+</html>
